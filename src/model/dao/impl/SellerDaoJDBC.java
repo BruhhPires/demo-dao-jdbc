@@ -92,8 +92,42 @@ public class SellerDaoJDBC implements SellerDao{
 
 	@Override
 	public List<Seller> findAll() {
-		// TODO Auto-generated method stub
-		return null;
+			PreparedStatement st = null;
+			ResultSet rs = null;
+			try {
+				st = conn.prepareStatement(
+						"SELECT seller.*,department.Name as DepName "
+						+ "FROM seller INNER JOIN department "
+						+ "ON seller.DepartmentId = department.Id "
+						+ "ORDER BY Name ");
+						
+				rs = st.executeQuery();
+				
+				List<Seller> list = new ArrayList<>();          // DEVE INSTANCIAR UMA LIST POIS É UMA LISTA DE DEPARTAMENTOS 
+				Map<Integer, Department> map = new HashMap<>(); // CRIA UM MAP POIS ELE NÃO ACEITA VALOR DUPLICADO
+				
+				while (rs.next()) { 			                // ENQUANTO O NEXT NÃO FOR NULO, SERÁ CRIADO O OBJETO
+					Department dep = map.get(rs.getInt("DepartmentId")); // O DEPARTMENT RECEBERA O VALOR QUE MAP VAI BUSCAR
+					
+					if(dep == null) {				            // SE O DEP ESTIVER NULO AI SIM SERÁ INSTANCIADO O DEPARTAMENTO SE JÁ EXISTE SERÁ USADO ELE MESMO
+						dep = instantiateDepartment(rs);		// O DEP SERÁINSTANCIADO COM O VALOR DO RS, CASO O MAP NÃO FOR NULO
+						map.put(rs.getInt("DepartmentId"), dep); // O MAP PEGA O VALOR DO RS.INT E NA PROXIMA NÃO DARÁ MAIS NULO
+					}
+			
+					Seller obj = instantiateSeller(rs, dep);
+					list.add(obj);
+
+				}
+				return list;
+			}
+			catch (SQLException e) {
+				throw new DbException(e.getMessage());
+			}
+			finally {
+				DB.closeStatement(st);
+				DB.closeResultSet(rs);
+				// A CONEXÃO DEVERÁ SER MANTIDA ABERTA
+			}
 	}
 
 	@Override
